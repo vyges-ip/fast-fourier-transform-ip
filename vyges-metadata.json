@@ -15,7 +15,7 @@
   "maturity": "draft",
   "upstream": {
     "repo": "https://github.com/vyges/fast-fourier-transform-ip",
-    "commit": "b083c393aeaa6d4c7c98806878d4dada7d97ac03"
+    "commit": "5a1eb72ddb9b23449c5119dea17eb3c247f2168d"
   },
   "interfaces": [],
   "parameters": [],
