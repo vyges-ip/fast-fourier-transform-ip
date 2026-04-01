@@ -274,8 +274,7 @@
       "version": "1.0.0"
     }
   },
-  "upstream": {
-    "repo": "https://github.com/vyges/fast-fourier-transform-ip",
-    "commit": "20dd76049c32eb8cfca9527e1a8d9e5e1d92cfa5"
+  "branding": {
+    "display_name": "FFT Engine"
   }
 }
