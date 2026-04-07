@@ -279,6 +279,6 @@
   },
   "upstream": {
     "repo": "https://github.com/vyges/fast-fourier-transform-ip",
-    "commit": "3eb66eb809643dc081885cca4febaa945e18ad4a"
+    "commit": "4326f2ed8526aeb75fd32767cd6be9ceaf710768"
   }
 }
