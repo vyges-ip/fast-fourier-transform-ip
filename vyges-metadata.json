@@ -559,5 +559,9 @@
         "wrapper_module": "fft_data_sram"
       }
     }
+  },
+  "upstream": {
+    "repo": "https://github.com/vyges/fast-fourier-transform-ip",
+    "commit": "f08f12c7858d4056b66fe464f195daef6f2610a6"
   }
 }
