@@ -111,11 +111,13 @@ module memory_interface #(
     output logic        sram_rwb_o,
     output logic [1:0]  sram_en_o,
     input  logic [31:0] sram_rdata0_i,
-    input  logic [31:0] sram_rdata1_i,
+    input  logic [31:0] sram_rdata1_i
 
     // Generic bus master (FFT_USE_BUS_MASTER only) — wrapped by SoC-side
     // bus protocol adapter (TL-UL, AXI-Lite, Wishbone, ...). See
     // docs/bus-master-mode-design.md for the contract.
+`ifdef FFT_USE_BUS_MASTER
+    ,
     output logic        mem_req_valid_o,
     input  logic        mem_req_ready_i,
     output logic [10:0] mem_req_addr_o,
@@ -125,6 +127,7 @@ module memory_interface #(
     input  logic        mem_rsp_valid_i,
     input  logic [31:0] mem_rsp_rdata_i,
     input  logic        mem_rsp_err_i
+`endif
 );
 
     // Compile-time mutual exclusion check on memory backend modes.
@@ -335,6 +338,22 @@ module memory_interface #(
     assign apb_twiddle_wr   = (apb_state == APB_ACCESS) && pwrite_i && paddr_i[11];
     assign apb_twiddle_addr = 11'd1024 + {2'b00, paddr_i[10:2]};
 
+`ifdef FFT_USE_APB_DATA
+    // APB data write window (paddr[12]=1, paddr[11]=0): 0x1000–0x1FFC
+    // covers 1024 packed {imag[15:0], real[15:0]} samples that the engine
+    // consumes from fft_memory[0..1023]. Gated by FFT_USE_APB_DATA so SoCs
+    // with a DMA / external master path keep the default no-extra-decode
+    // build. Mux precedence in the write port below: apb_data_wr beats
+    // apb_twiddle_wr beats engine write — the three are mutually exclusive
+    // by protocol (samples loaded → twiddles already loaded earlier →
+    // FFT_CTRL[0]=1 starts the engine).
+    logic        apb_data_wr;
+    logic [10:0] apb_data_addr;
+    assign apb_data_wr   = (apb_state == APB_ACCESS) && pwrite_i
+                           && paddr_i[12] && !paddr_i[11];
+    assign apb_data_addr = {1'b0, paddr_i[11:2]};
+`endif
+
     // Memory interface logic
     //
     // Default (generic): FF-based array with BRAM inference attributes.
@@ -374,6 +393,13 @@ module memory_interface #(
     logic [31:0]          wr_data;
 
     always_comb begin
+`ifdef FFT_USE_APB_DATA
+        if (apb_data_wr) begin
+            wr_en   = 1'b1;
+            wr_addr = apb_data_addr;
+            wr_data = pwdata_i;
+        end else
+`endif
         if (apb_twiddle_wr) begin
             wr_en   = 1'b1;
             wr_addr = apb_twiddle_addr;
@@ -403,9 +429,17 @@ module memory_interface #(
     fft_data_sram u_fft_mem (
         .clk_i         (clk_i),
         .reset_n_i     (reset_n_i),
+`ifdef FFT_USE_APB_DATA
+        .addr_i        (apb_data_wr ? apb_data_addr
+                        : apb_twiddle_wr ? apb_twiddle_addr : mem_idx),
+        .wdata_i       (apb_data_wr ? pwdata_i
+                        : apb_twiddle_wr ? pwdata_i         : mem_data_i),
+        .write_en_i    (apb_data_wr | apb_twiddle_wr | mem_write_i),
+`else
         .addr_i        (apb_twiddle_wr ? apb_twiddle_addr : mem_idx),
         .wdata_i       (apb_twiddle_wr ? pwdata_i         : mem_data_i),
         .write_en_i    (apb_twiddle_wr | mem_write_i),
+`endif
         .rdata_o       (mem_data_o),
         .sram_clk_o    (sram_clk_o),
         .sram_addr_o   (sram_addr_o),
