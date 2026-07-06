@@ -3,7 +3,7 @@ upstream:
   type: "standalone"
   repo: https://github.com/vyges/fast-fourier-transform-ip
   branch: main
-  commit: 98f6038005b89f1a856c9fc5f9e5b256696046ce
+  commit: 840e271e1de91277302e3b0960ce3f357dfc41a1
 import:
   rtl:
     - path: "rtl"
